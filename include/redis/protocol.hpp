@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.hpp"
+#include <expected>
 #include <string>
 #include <vector>
 
@@ -10,7 +11,7 @@ namespace redis {
 class Protocol {
 public:
     // Parse incoming RESP command
-    static CommandArgs parseCommand(const std::string& data);
+    static std::expected<CommandArgs, std::string> parseCommand(const std::string& data);
     
     // Serialize response to RESP format
     static std::string serializeSimpleString(const std::string& str);
