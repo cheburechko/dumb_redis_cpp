@@ -1,8 +1,8 @@
 #pragma once
 
+#include <span>
 #include <string>
 #include <vector>
-#include <memory>
 #include <variant>
 
 namespace redis {
@@ -23,6 +23,7 @@ using RedisValue = std::variant<
 
 // Command arguments
 using CommandArgs = std::vector<std::string>;
+using CommandArgsSpan = std::span<const std::string>;
 
 // Response types
 enum class ResponseType {

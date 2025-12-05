@@ -3,6 +3,7 @@
 #include "types.hpp"
 #include <expected>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace redis {
@@ -21,7 +22,6 @@ public:
     static std::string serializeNullBulkString();
     static std::string serializeArray(const std::vector<std::string>& elements);
     static std::string serializeNullArray();
-    
     // Generic serialize based on response type
     static std::string serialize(const std::string& response, ResponseType type);
 };

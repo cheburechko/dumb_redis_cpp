@@ -20,7 +20,9 @@ ClientConnection::~ClientConnection() {
 }
 
 void ClientConnection::handle() {
-    auto commands = Protocol::parseCommand(readRequest());
+    auto request = readRequest();
+    spdlog::debug("Received request: {}", request);
+    auto commands = Protocol::parseCommand(request);
     if (!active_) {
         return;
     }
@@ -68,12 +70,16 @@ std::string ClientConnection::readRequest() {
         spdlog::debug("Read {} bytes from socket {}", bytes_read, socket_fd_);
         buffer_.write(buffer, bytes_read);
     }
-    return buffer_.str();
+    auto result = buffer_.str();
+    buffer_.str("");
+    buffer_.clear();
+    return result;
 }
 
 void ClientConnection::sendResponse() {
     while (!response_queue_.empty()) {
         auto& reply = response_queue_.front();
+        spdlog::debug("Sending response: {}", reply);
         auto result = ::write(socket_fd_, reply.c_str(), reply.length());
         if (result == -1) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {

@@ -11,7 +11,7 @@ using namespace redis;
 using namespace sw::redis;
 using namespace std::chrono_literals;
 
-TEST_CASE("Server Integration: Connect and receive error responses", "[integration]") {
+TEST_CASE("Server Integration: Basic commands", "[integration]") {
     // Use a random port to avoid conflicts
     const int test_port = 6380;
     const std::string test_host = "127.0.0.1";
@@ -50,92 +50,31 @@ TEST_CASE("Server Integration: Connect and receive error responses", "[integrati
         // Test that we can connect and get responses
         // Since commands aren't implemented, we should get error responses
         
-        SECTION("PING command gets error response") {
-            try {
-                auto result = redis.ping();
-                // If we get here without exception, we got some response
-                // (unlikely since commands aren't implemented)
-            } catch (const Error& e) {
-                // Expected: command not implemented, so we get an error
-                // Just verify we got some error response
-                REQUIRE(std::string(e.what()).length() > 0);
-            } catch (const std::exception& e) {
-                // Any exception means we got a response (even if it's an error)
-                REQUIRE(true);
-            }
+        SECTION("PING command") {
+            auto result = redis.ping();
+            REQUIRE(result == "PONG");
         }
         
-        SECTION("SET command gets error response") {
-            try {
-                redis.set("test_key", "test_value");
-            } catch (const Error& e) {
-                // Expected: command not implemented
-                REQUIRE(std::string(e.what()).length() > 0);
-            } catch (const std::exception& e) {
-                // Any response is fine for this test
-                REQUIRE(true);
-            }
+        SECTION("SET command") {
+            REQUIRE(redis.set("test_key", "test_value"));
         }
         
-        SECTION("GET command gets error response") {
-            try {
-                auto result = redis.get("test_key");
-            } catch (const Error& e) {
-                // Expected: command not implemented
-                REQUIRE(std::string(e.what()).length() > 0);
-            } catch (const std::exception& e) {
-                // Any response is fine
-                REQUIRE(true);
-            }
+        SECTION("GET command") {
+            auto result = redis.get("test_key");
+            REQUIRE_FALSE(result.has_value());
         }
         
-        SECTION("Multiple commands can be sent") {
-            // Test that we can send multiple commands and get responses
-            int responses_received = 0;
-            
-            try {
-                redis.ping();
-                responses_received++;
-            } catch (const std::exception&) {
-                responses_received++; // Error response is still a response
-            }
-            
-            try {
-                redis.set("key1", "value1");
-                responses_received++;
-            } catch (const std::exception&) {
-                responses_received++;
-            }
-            
-            try {
-                redis.get("key1");
-                responses_received++;
-            } catch (const std::exception&) {
-                responses_received++;
-            }
-            
-            // Verify we got responses (even if they're errors)
-            REQUIRE(responses_received == 3);
+        SECTION("Multiple commands") {
+            REQUIRE(redis.ping() == "PONG");
+            REQUIRE(redis.set("key1", "value1"));
+            REQUIRE(redis.get("key1") == "value1");
         }
         
         SECTION("Connection remains active after multiple commands") {
             for (int i = 0; i < 5; ++i) {
-                try {
-                    redis.ping();
-                } catch (const std::exception&) {
-                    // Expected errors, but connection should remain active
-                }
+                REQUIRE(redis.ping() == "PONG");
                 std::this_thread::sleep_for(50ms);
             }
-            
-            // Try one more command to verify connection is still active
-            try {
-                redis.ping();
-            } catch (const std::exception&) {
-                // Expected
-            }
-            
-            REQUIRE(true); // If we get here, connection still works
         }
         
     } catch (const std::exception& e) {
