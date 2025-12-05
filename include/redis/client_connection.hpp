@@ -3,6 +3,8 @@
 #include <string>
 #include <sstream>
 #include <atomic>
+#include <queue>
+#include "types.hpp"
 
 namespace redis {
 
@@ -25,9 +27,10 @@ private:
     std::stringstream buffer_;
     Database& database_;
     std::atomic<bool> active_;
+    std::queue<std::string> response_queue_;
     
     std::string readRequest();
-    void sendResponse(const std::string& response);
+    void sendResponse();
 };
 
 } // namespace redis

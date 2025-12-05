@@ -1,7 +1,5 @@
 #include "redis/database.hpp"
 #include "redis/protocol.hpp"
-#include <algorithm>
-#include <sstream>
 
 namespace redis {
 
@@ -11,9 +9,8 @@ Database::Database() {
 Database::~Database() {
 }
 
-std::string Database::executeCommand(const std::string& command, const CommandArgs& args) {
-    // TODO: Implement command routing and execution
-    return "";
+std::string Database::executeCommand(const CommandArgs& args) {
+    return Protocol::serializeError("Invalid command");
 }
 
 Storage& Database::getStorage() {

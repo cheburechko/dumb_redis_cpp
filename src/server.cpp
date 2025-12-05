@@ -145,6 +145,11 @@ void Server::handleClient(int client_socket) {
     auto& connection = connections_[client_socket];
     auto had_pending_data = connection->hasPendingData();
     connection->handle();
+    if (!connection->isActive()) {
+        connections_.erase(client_socket);
+        ::close(client_socket);
+        return;
+    }
     auto has_pending_data = connection->hasPendingData();
     if (had_pending_data != has_pending_data) {
         struct epoll_event event;

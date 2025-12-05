@@ -14,7 +14,7 @@ public:
     ~Database();
     
     // Execute a command and return response
-    std::string executeCommand(const std::string& command, const CommandArgs& args);
+    std::string executeCommand(const CommandArgs& args);
     
     // Get underlying storage (for direct access if needed)
     Storage& getStorage();
