@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include <cstring>
 
+#include <spdlog/spdlog.h>
+
 const constexpr int MAX_EVENTS = 10;
 const constexpr int TIMEOUT = 1000;
 
@@ -82,9 +84,13 @@ void Server::start() {
     while (running_) {
         int nfds = epoll_wait(epoll_fd_, events, MAX_EVENTS, TIMEOUT);
         if (nfds == -1) {
-            throw std::runtime_error("Failed to wait on epoll");
+            if (!running_) {
+                break;
+            }
+            throw std::runtime_error(std::format("Failed to wait on epoll: {}", strerror(errno)));
         }
         for (int i = 0; i < nfds; i++) {
+            spdlog::debug("Event on socket {}", events[i].data.fd);
             if (events[i].data.fd == server_socket_) {
                 acceptConnections();
             } else {
@@ -120,10 +126,13 @@ void Server::acceptConnections() {
         int client_socket = accept(server_socket_, (struct sockaddr*)&client_address, &client_address_len);
         if (client_socket == -1) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                spdlog::debug("No more connections to accept");
                 break;
             }
             throw std::runtime_error("Failed to accept connection");
         }
+
+        spdlog::debug("Accepted connection from {}, socket {}", inet_ntoa(client_address.sin_addr), client_socket);
 
         set_nonblocking(client_socket);
 
@@ -139,6 +148,7 @@ void Server::acceptConnections() {
 }
 
 void Server::handleClient(int client_socket) {
+    spdlog::debug("Handling client on socket {}", client_socket);
     if (connections_.find(client_socket) == connections_.end()) {
         throw std::runtime_error("Client socket not found");
     }
@@ -146,12 +156,13 @@ void Server::handleClient(int client_socket) {
     auto had_pending_data = connection->hasPendingData();
     connection->handle();
     if (!connection->isActive()) {
+        spdlog::debug("Client socket {} is not active, removing from connections", client_socket);
         connections_.erase(client_socket);
-        ::close(client_socket);
         return;
     }
     auto has_pending_data = connection->hasPendingData();
     if (had_pending_data != has_pending_data) {
+        spdlog::debug("Client socket {} has pending data: {} -> {}", client_socket, had_pending_data, has_pending_data);
         struct epoll_event event;
         event.events = EPOLLIN | EPOLLET;
         if (has_pending_data) {

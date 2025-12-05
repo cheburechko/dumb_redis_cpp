@@ -1,9 +1,12 @@
 #include "redis/client_connection.hpp"
 #include "redis/database.hpp"
 #include "redis/protocol.hpp"
+#include <format>
 #include <unistd.h>
 #include <cstring>
 #include <stdexcept>
+
+#include <spdlog/spdlog.h>
 
 namespace redis {
 
@@ -48,12 +51,21 @@ std::string ClientConnection::readRequest() {
         ssize_t bytes_read = ::read(socket_fd_, buffer, sizeof(buffer));
         if (bytes_read == -1) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                spdlog::debug("Finished reading from socket {}", socket_fd_);
                 break;
             }
-            throw std::runtime_error("Failed to read from socket");
+            if (errno == ECONNRESET) {
+                spdlog::debug("Client socket {} closed by peer", socket_fd_);
+                close();
+                break;
+            }
+            throw std::runtime_error(std::format("Failed to read from socket: {}", strerror(errno)));
         } else if (bytes_read == 0) {
+            spdlog::debug("Client socket {} closed by peer", socket_fd_);
             close();
+            break;
         }
+        spdlog::debug("Read {} bytes from socket {}", bytes_read, socket_fd_);
         buffer_.write(buffer, bytes_read);
     }
     return buffer_.str();
@@ -65,9 +77,12 @@ void ClientConnection::sendResponse() {
         auto result = ::write(socket_fd_, reply.c_str(), reply.length());
         if (result == -1) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                spdlog::debug("Socket {} is not ready for writing", socket_fd_);
                 break;
             }
+            throw std::runtime_error(std::format("Failed to write to socket: {}", strerror(errno)));
         }
+        spdlog::debug("Wrote {} bytes to socket {}", result, socket_fd_);
         response_queue_.pop();
     }
 }

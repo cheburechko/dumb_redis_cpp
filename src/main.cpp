@@ -2,6 +2,8 @@
 #include <signal.h>
 #include "redis/server.hpp"
 
+#include <spdlog/spdlog.h>
+
 static redis::Server* g_server = nullptr;
 
 void signalHandler(int signal) {
@@ -12,6 +14,7 @@ void signalHandler(int signal) {
 }
 
 int main(int argc, char* argv[]) {
+    spdlog::set_level(spdlog::level::debug);
     // Parse command line arguments
     std::string host = "127.0.0.1";
     int port = 6379;
@@ -31,7 +34,7 @@ int main(int argc, char* argv[]) {
     try {
         server.start();
     } catch (const std::exception& e) {
-        std::cerr << "Server error: " << e.what() << std::endl;
+        spdlog::error("Server error: {}", e.what());
         return 1;
     }
     

@@ -13,6 +13,17 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
+include(FetchContent)
+
+# spdlog for logging
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG        v1.16.0
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(spdlog)
+
 # Source files (excluding main.cpp for library)
 set(LIB_SOURCES
     src/server.cpp
@@ -41,11 +52,11 @@ set(HEADERS
 
 # Create library for linking with tests
 add_library(${PROJECT_NAME}_lib ${LIB_SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME}_lib PUBLIC pthread)
+target_link_libraries(${PROJECT_NAME}_lib PUBLIC pthread spdlog::spdlog)
 
 # Create executable
 add_executable(${PROJECT_NAME} ${EXEC_SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME} pthread)
+target_link_libraries(${PROJECT_NAME} pthread spdlog::spdlog)
 
 # Testing
 enable_testing()
