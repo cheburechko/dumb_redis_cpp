@@ -34,6 +34,11 @@ add_executable(test_protocol test_protocol.cpp)
 target_link_libraries(test_protocol PRIVATE Catch2::Catch2WithMain dumb_redis_cpp_lib)
 target_include_directories(test_protocol PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
+# Storage tests
+add_executable(test_storage test_storage.cpp)
+target_link_libraries(test_storage PRIVATE Catch2::Catch2WithMain dumb_redis_cpp_lib)
+target_include_directories(test_storage PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
 # Server integration tests
 add_executable(test_server_integration test_server_integration.cpp)
 target_link_libraries(
@@ -49,5 +54,6 @@ target_include_directories(test_server_integration PRIVATE ${CMAKE_SOURCE_DIR}/i
 include(CTest)
 include(Catch)
 Catch_discover_tests(test_protocol)
+Catch_discover_tests(test_storage)
 Catch_discover_tests(test_server_integration)
 

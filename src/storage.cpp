@@ -9,24 +9,31 @@ Storage::Storage() {
 Storage::~Storage() {
 }
 
-bool Storage::set(const std::string& key, const std::string& value) {
+void Storage::set(const std::string& key, const std::string& value) {
     // TODO: Implement SET operation
-    return false;
+    data_[key] = value;
 }
 
-std::optional<std::string> Storage::get(const std::string& key) {
+std::expected<std::optional<std::string>, std::string> Storage::get(const std::string& key) {
     // TODO: Implement GET operation
-    return std::nullopt;
+    auto it = data_.find(key);
+    if (it == data_.end()) {
+        return std::nullopt;
+    }
+    if (std::holds_alternative<std::string>(it->second)) {
+        return std::get<std::string>(it->second);
+    }
+    return std::unexpected("Value is not a string");
 }
 
 bool Storage::del(const std::string& key) {
     // TODO: Implement DEL operation
-    return false;
+    return data_.erase(key) > 0;
 }
 
 bool Storage::exists(const std::string& key) {
     // TODO: Implement EXISTS operation
-    return false;
+    return data_.contains(key);
 }
 
 size_t Storage::size() const {

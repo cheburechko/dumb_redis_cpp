@@ -16,18 +16,9 @@ enum class ValueType {
     NONE
 };
 
-// Forward declarations
-class RedisString;
-class RedisList;
-class RedisSet;
-class RedisHash;
-
 // Redis value variant
 using RedisValue = std::variant<
-    std::shared_ptr<RedisString>,
-    std::shared_ptr<RedisList>,
-    std::shared_ptr<RedisSet>,
-    std::shared_ptr<RedisHash>
+    std::string
 >;
 
 // Command arguments

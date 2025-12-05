@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.hpp"
+#include <expected>
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -18,8 +19,8 @@ public:
     ~Storage();
     
     // String operations
-    bool set(const std::string& key, const std::string& value);
-    std::optional<std::string> get(const std::string& key);
+    void set(const std::string& key, const std::string& value);
+    std::expected<std::optional<std::string>, std::string> get(const std::string& key);
     bool del(const std::string& key);
     bool exists(const std::string& key);
 
