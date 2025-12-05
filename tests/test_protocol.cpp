@@ -77,7 +77,9 @@ TEST_CASE("Protocol: Parse Command - Simple GET", "[protocol]") {
     auto result = Protocol::parseCommand(command);
     
     REQUIRE(result.has_value());
-    const auto& args = result.value();
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 1);
+    const auto& args = cmds[0];
     REQUIRE(args.size() == 2);
     REQUIRE(args[0] == "GET");
     REQUIRE(args[1] == "key");
@@ -88,7 +90,9 @@ TEST_CASE("Protocol: Parse Command - SET", "[protocol]") {
     auto result = Protocol::parseCommand(command);
     
     REQUIRE(result.has_value());
-    const auto& args = result.value();
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 1);
+    const auto& args = cmds[0];
     REQUIRE(args.size() == 3);
     REQUIRE(args[0] == "SET");
     REQUIRE(args[1] == "key");
@@ -100,7 +104,9 @@ TEST_CASE("Protocol: Parse Command - Empty Array", "[protocol]") {
     auto result = Protocol::parseCommand(command);
     
     REQUIRE(result.has_value());
-    const auto& args = result.value();
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 1);
+    const auto& args = cmds[0];
     REQUIRE(args.size() == 0);
 }
 
@@ -109,7 +115,9 @@ TEST_CASE("Protocol: Parse Command - Single Element", "[protocol]") {
     auto result = Protocol::parseCommand(command);
     
     REQUIRE(result.has_value());
-    const auto& args = result.value();
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 1);
+    const auto& args = cmds[0];
     REQUIRE(args.size() == 1);
     REQUIRE(args[0] == "PING");
 }
@@ -119,7 +127,9 @@ TEST_CASE("Protocol: Parse Command - Multiple Elements", "[protocol]") {
     auto result = Protocol::parseCommand(command);
     
     REQUIRE(result.has_value());
-    const auto& args = result.value();
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 1);
+    const auto& args = cmds[0];
     REQUIRE(args.size() == 5);
     REQUIRE(args[0] == "SET");
     REQUIRE(args[1] == "key");
@@ -133,7 +143,9 @@ TEST_CASE("Protocol: Parse Command - Empty Strings", "[protocol]") {
     auto result = Protocol::parseCommand(command);
     
     REQUIRE(result.has_value());
-    const auto& args = result.value();
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 1);
+    const auto& args = cmds[0];
     REQUIRE(args.size() == 2);
     REQUIRE(args[0] == "");
     REQUIRE(args[1] == "");
@@ -169,7 +181,9 @@ TEST_CASE("Protocol: Round-trip Serialization", "[protocol]") {
     // The serialized array should be parseable
     auto result = Protocol::parseCommand(serialized);
     REQUIRE(result.has_value());
-    const auto& parsed = result.value();
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 1);
+    const auto& parsed = cmds[0];
     
     REQUIRE(parsed.size() == original.size());
     for (size_t i = 0; i < original.size(); ++i) {
@@ -195,5 +209,23 @@ TEST_CASE("Protocol: Generic Serialize", "[protocol]") {
     
     result = Protocol::serialize("", ResponseType::NULL_ARRAY);
     REQUIRE(result == "*-1\r\n");
+}
+
+TEST_CASE("Protocol: Parse Command - Multiple Commands", "[protocol]") {
+    std::string command = "*2\r\n$3\r\nGET\r\n$3\r\nkey\r\n*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n";
+    auto result = Protocol::parseCommand(command);
+    
+    REQUIRE(result.has_value());
+    const auto& cmds = result.value();
+    REQUIRE(cmds.size() == 2);
+    const auto& args1 = cmds[0];
+    REQUIRE(args1.size() == 2);
+    REQUIRE(args1[0] == "GET");
+    REQUIRE(args1[1] == "key");
+    const auto& args2 = cmds[1];
+    REQUIRE(args2.size() == 3);
+    REQUIRE(args2[0] == "SET");
+    REQUIRE(args2[1] == "key");
+    REQUIRE(args2[2] == "value");
 }
 

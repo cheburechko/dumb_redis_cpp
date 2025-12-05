@@ -1,65 +1,73 @@
 #include "redis/protocol.hpp"
 #include <sstream>
 #include <algorithm>
+#include <vector>
 
 namespace redis {
 
-std::expected<CommandArgs, std::string> Protocol::parseCommand(const std::string& data) {
-    CommandArgs args;
-    
-    if (data.empty() || data[0] != '*') {
-        return std::unexpected("Invalid RESP command: must start with '*'");
-    }
-    
-    size_t pos = 1;
-    
-    // Parse array length
-    size_t array_end = data.find("\r\n", pos);
-    if (array_end == std::string::npos) {
-        return std::unexpected("Invalid RESP command: missing array length terminator");
-    }
-    
-    int array_length;
-    try {
-        array_length = std::stoi(data.substr(pos, array_end - pos));
-    } catch (const std::exception&) {
-        return std::unexpected("Invalid RESP command: invalid array length");
-    }
-    pos = array_end + 2;
-    
-    // Parse each bulk string in the array
-    for (int i = 0; i < array_length; ++i) {
-        if (pos >= data.length() || data[pos] != '$') {
-            return std::unexpected("Invalid RESP command: expected bulk string");
+std::expected<std::vector<CommandArgs>, std::string> Protocol::parseCommand(const std::string& data) {
+    std::vector<CommandArgs> results;
+    std::string_view data_view(data);
+
+    while (!data_view.empty()) {
+        CommandArgs args;
+
+        if (data_view.empty() || data_view[0] != '*') {
+            return std::unexpected("Invalid RESP command: must start with '*'");
         }
         
-        pos++; // Skip '$'
+        size_t pos = 1;
         
-        // Parse bulk string length
-        size_t length_end = data.find("\r\n", pos);
-        if (length_end == std::string::npos) {
-            return std::unexpected("Invalid RESP command: missing bulk string length terminator");
+        // Parse array length
+        size_t array_end = data_view.find("\r\n", pos);
+        if (array_end == std::string::npos) {
+            return std::unexpected("Invalid RESP command: missing array length terminator");
         }
         
-        int bulk_length;
+        int array_length;
         try {
-            bulk_length = std::stoi(data.substr(pos, length_end - pos));
+            array_length = std::stoi(std::string(data_view.substr(pos, array_end - pos)));
         } catch (const std::exception&) {
-            return std::unexpected("Invalid RESP command: invalid bulk string length");
+            return std::unexpected("Invalid RESP command: invalid array length");
         }
-        pos = length_end + 2;
+        pos = array_end + 2;
         
-        // Extract bulk string content
-        if (pos + bulk_length + 2 > data.length()) {
-            return std::unexpected("Invalid RESP command: bulk string content too short");
+        // Parse each bulk string in the array
+        for (int i = 0; i < array_length; ++i) {
+            if (pos >= data_view.length() || data_view[pos] != '$') {
+                return std::unexpected("Invalid RESP command: expected bulk string");
+            }
+            
+            pos++; // Skip '$'
+            
+            // Parse bulk string length
+            size_t length_end = data_view.find("\r\n", pos);
+            if (length_end == std::string::npos) {
+                return std::unexpected("Invalid RESP command: missing bulk string length terminator");
+            }
+            
+            int bulk_length;
+            try {
+                bulk_length = std::stoi(std::string(data_view.substr(pos, length_end - pos)));
+            } catch (const std::exception&) {
+                return std::unexpected("Invalid RESP command: invalid bulk string length");
+            }
+            pos = length_end + 2;
+            
+            // Extract bulk string content
+            if (pos + bulk_length + 2 > data_view.length()) {
+                return std::unexpected("Invalid RESP command: bulk string content too short");
+            }
+            
+            auto arg = data_view.substr(pos, bulk_length);
+            args.emplace_back(arg);
+            pos += bulk_length + 2; // Skip content and \r\n
         }
-        
-        std::string arg = data.substr(pos, bulk_length);
-        args.push_back(arg);
-        pos += bulk_length + 2; // Skip content and \r\n
+        results.push_back(args);
+        data_view.remove_prefix(pos);
     }
     
-    return args;
+    return results;
 }
 
 std::string Protocol::serializeSimpleString(const std::string& str) {
